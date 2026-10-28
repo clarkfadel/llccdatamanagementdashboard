@@ -1,0 +1,8 @@
+"UserId","FirstName","LastName","Email","Status","Created_At","Updated_At"
+"-1",NULL,"Migration User","migration@llcc.local",NULL,"2026-05-23","2026-05-23"
+"1","TERESA","SORIANO","teresa.soriano@llcc.local","False","2026-05-23","2026-05-23"
+"2","FRANCISCO","REYES","francisco.reyes@llcc.local","True","2026-05-23","2026-05-23"
+"3","JUAN","AGUILAR","juan.aguilar@llcc.local","False","2026-05-23","2026-05-23"
+"4","ELENA","VALDEZ","elena.valdez@llcc.local","False","2026-05-23","2026-05-23"
+"5","ANGEL","SANTOS","angel.santos@llcc.local","True","2026-05-23","2026-05-23"
+"6","ANGEL","VILLANUEVA","angel.villanueva@llcc.local","False","2026-05-23","2026-05-23"
