@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { ident, qualified, naturalOrder } from '../schema.js';
 import { getTable, colExists, pkOf, fkColumns, getSchema } from '../meta.js';
-import { entityConfig, DASHBOARD_CARDS } from '../entities.js';
+import { entityConfig, DASHBOARD_CARDS, isDerived, withDerived } from '../entities.js';
 
 export const features = Router();
 
@@ -131,9 +131,9 @@ features.get('/quality/unmapped/:table', async (req, res, next) => {
       table: table.name, label: cfg.label || table.name, primaryKey: pk,
       column, fkColumns: fks,
       listColumns: (cfg.listColumns || table.columns.slice(0, 6).map((c) => c.name))
-        .filter((c) => colExists(table, c)),
+        .filter((c) => colExists(table, c) || isDerived(cfg, c)),
       page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      rows,
+      rows: rows.map((r) => withDerived(cfg, r)),
     });
   } catch (e) { next(e); }
 });

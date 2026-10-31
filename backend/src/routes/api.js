@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { getSchema, getTable, ident, qualified, naturalOrder } from '../schema.js';
-import { DASHBOARD_CARDS, NAV_GROUPS, entityConfig } from '../entities.js';
+import { DASHBOARD_CARDS, NAV_GROUPS, entityConfig, isDerived, withDerived } from '../entities.js';
 import { colExists, pkOf, tableByPkColumn } from '../meta.js';
 
 export const api = Router();
@@ -58,8 +58,11 @@ api.get('/records/:table', async (req, res, next) => {
     }
 
     const pk = pkOf(table);
-    let sort = req.query.sort && colExists(table, req.query.sort) ? req.query.sort : pk;
     const dir = String(req.query.dir).toLowerCase() === 'desc' ? 'desc' : 'asc';
+    // derived columns sort by their own SQL expression (never user input)
+    const orderBy = isDerived(cfg, req.query.sort)
+      ? `${cfg.derived[req.query.sort].sql} ${dir} nulls last, ${naturalOrder(pk, 'asc')}`
+      : naturalOrder(req.query.sort && colExists(table, req.query.sort) ? req.query.sort : pk, dir);
 
     const totalRes = await query(
       `select count(*)::bigint as n from ${qualified(table.name)} ${where}`, params);
@@ -67,7 +70,7 @@ api.get('/records/:table', async (req, res, next) => {
 
     const rowsRes = await query(
       `select * from ${qualified(table.name)} ${where}
-        order by ${naturalOrder(sort, dir)}
+        order by ${orderBy}
         limit ${pageSize} offset ${offset}`, params);
 
     res.json({
@@ -76,10 +79,10 @@ api.get('/records/:table', async (req, res, next) => {
       primaryKey: pk,
       columns: table.columns.map((c) => c.name),
       listColumns: (cfg.listColumns || table.columns.slice(0, 6).map((c) => c.name))
-        .filter((c) => colExists(table, c)),
+        .filter((c) => colExists(table, c) || isDerived(cfg, c)),
       page, pageSize, total,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      rows: rowsRes.rows,
+      rows: rowsRes.rows.map((r) => withDerived(cfg, r)),
     });
   } catch (e) { next(e); }
 });
@@ -146,8 +149,8 @@ api.get('/records/:table/:id', async (req, res, next) => {
         via: pk,
         count,
         listColumns: (ocfg.listColumns || other.columns.slice(0, 5).map((c) => c.name))
-          .filter((c) => colExists(other, c)),
-        rows: sample.rows,
+          .filter((c) => colExists(other, c) || isDerived(ocfg, c)),
+        rows: sample.rows.map((r) => withDerived(ocfg, r)),
       });
     }
 

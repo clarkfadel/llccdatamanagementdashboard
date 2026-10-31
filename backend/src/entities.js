@@ -7,6 +7,9 @@ export const DASHBOARD_CARDS = [
   { table: 'Transactions', label: 'Transactions' },
 ];
 
+// deceased has no name column, the name is inside Remarks ("Name=JUAN CRUZ | DeathDate=...")
+const remarksName = (remarks) => remarks?.match(/Name=([^|]+)/)?.[1].trim() || null;
+
 export const ENTITIES = {
   Clients: {
     label: 'Clients',
@@ -26,8 +29,12 @@ export const ENTITIES = {
     label: 'Deceased',
     primaryKey: 'DeceasedId',
     search: ['PermitNo', 'CauseOfDeath', 'Remarks'],
-    listColumns: ['DeceasedId', 'DeathDate', 'BurialDate', 'CauseOfDeath', 'PermitNo'],
-    title: (r) => `Deceased #${r.DeceasedId}`,
+    listColumns: ['DeceasedId', 'Name', 'DeathDate', 'BurialDate', 'CauseOfDeath', 'PermitNo'],
+    // extra columns made from other fields (read only). sql is used for sorting
+    derived: {
+      Name: { value: (r) => remarksName(r.Remarks), sql: `trim(substring("Remarks" from 'Name=([^|]+)'))` },
+    },
+    title: (r) => remarksName(r.Remarks) || `Deceased #${r.DeceasedId}`,
   },
   Transactions: {
     label: 'Transactions',
@@ -103,4 +110,14 @@ export const NAV_GROUPS = [
 
 export function entityConfig(table) {
   return ENTITIES[table] || null;
+}
+
+export const isDerived = (cfg, col) => Boolean(cfg?.derived?.[col]);
+
+// add the derived (read-only) columns to a row
+export function withDerived(cfg, row) {
+  if (!cfg?.derived) return row;
+  const extra = {};
+  for (const [col, d] of Object.entries(cfg.derived)) extra[col] = d.value(row);
+  return { ...row, ...extra };
 }

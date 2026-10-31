@@ -78,7 +78,7 @@ export default function RecordList() {
       <div className="page-head-row">
         <div>
           <h1 className="page-title">{data?.label || table}</h1>
-          <p className="page-sub">{data ? `${data.total.toLocaleString()} records` : ' '}</p>
+          <p className="page-sub">{data ? `${data.total.toLocaleString()} record${data.total === 1 ? '' : 's'}` : ' '}</p>
         </div>
         <Link className="btn primary" to={`/records/${table}/new`}>+ New</Link>
       </div>
