@@ -4,6 +4,7 @@ import { getDuplicates, mergeRecords } from '../api.js';
 import { Cell } from '../format.jsx';
 import { Loading, ErrorState, EmptyState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import { fieldLabel } from '../labels.js';
 
 export default function Duplicates() {
   const { table } = useParams();
@@ -48,7 +49,7 @@ export default function Duplicates() {
             <thead>
               <tr>
                 <th style={{ cursor: 'default' }}>ID</th>
-                {g.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{c}</th>)}
+                {g.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{fieldLabel(c)}</th>)}
                 <th style={{ cursor: 'default' }}>Actions</th>
               </tr>
             </thead>

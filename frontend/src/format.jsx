@@ -9,7 +9,7 @@ export function Cell({ column, value }) {
     return <span className="nullval">—</span>;
   }
   if (value === '-1' && isUnmappedColumn(column)) {
-    return <span className="unmapped">Unmapped</span>;
+    return <span className="unmapped">Not linked</span>;
   }
   if (BOOLEAN_COLUMNS.has(column) && (value === 'True' || value === 'False')) {
     return <span className={`badge ${value === 'True' ? 'on' : 'off'}`}>{value === 'True' ? 'Yes' : 'No'}</span>;
@@ -20,6 +20,6 @@ export function Cell({ column, value }) {
 // plain-text version for table cells / titles where JSX isn't wanted
 export function display(column, value) {
   if (value === null || value === undefined || value === '') return '—';
-  if (value === '-1' && isUnmappedColumn(column)) return 'Unmapped';
+  if (value === '-1' && isUnmappedColumn(column)) return 'Not linked';
   return String(value);
 }

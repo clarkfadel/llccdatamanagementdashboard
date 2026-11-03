@@ -96,7 +96,10 @@ Everything is under `/api`. All routes need a token except `/health` and `/login
 
 ## Notes on the data
 
-- `-1` foreign keys are shown as **"Unmapped"** instead of the number.
+- `-1` foreign keys are shown as **"Not linked"** instead of the number.
+- The `-1` placeholder row in each table is hidden from the lists and counts.
+- Column names are shown as normal words (`DeathDate` is "Date of death") and each table has a short description of what it is.
+- Deceased names are read from `Remarks` (`Name=...`) since the table has no name column.
 - `NULL` values are shown as a dash, not "null".
 - `Status` and other `True`/`False` text fields are shown as badges.
 - `Remarks` are shown as is.

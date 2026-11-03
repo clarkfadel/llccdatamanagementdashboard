@@ -50,7 +50,7 @@ export default function Worklist() {
     return (
       <>
         <Link to="/quality" className="back-link">← Data quality</Link>
-        <h1 className="page-title">Resolve unmapped: {data.label}</h1>
+        <h1 className="page-title">Link records: {data.label}</h1>
         <div className="panel">
           <EmptyState icon="✓" title="Nothing to resolve here"
             hint={`${data.label} has no linkable fields to clean up.`} />
@@ -62,7 +62,7 @@ export default function Worklist() {
   return (
     <>
       <Link to="/quality" className="back-link">← Data quality</Link>
-      <h1 className="page-title">Resolve unmapped: {data.label}</h1>
+      <h1 className="page-title">Link records: {data.label}</h1>
       <p className="page-sub">
         Pick the correct <strong>{relationLabel(data.column)}</strong> for each row.
       </p>
@@ -83,7 +83,7 @@ export default function Worklist() {
         <table>
           <thead>
             <tr>
-              {data.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{fieldLabel(c)}</th>)}
+              {data.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{fieldLabel(c, data.primaryKey)}</th>)}
               <th style={{ cursor: 'default' }}>Link to {relationLabel(data.column)}</th>
             </tr>
           </thead>
@@ -107,13 +107,13 @@ export default function Worklist() {
               );
             })}
             {data.rows.length === 0 && (
-              <tr><td colSpan={data.listColumns.length + 1} className="state">Nothing left unmapped here. 🎉</td></tr>
+              <tr><td colSpan={data.listColumns.length + 1} className="state">Everything here is linked.</td></tr>
             )}
           </tbody>
         </table>
         <div className="pagination">
           <button className="btn" disabled={page <= 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span>Page {data.page} of {data.totalPages} · {data.total} unmapped</span>
+          <span>Page {data.page} of {data.totalPages} · {data.total} not linked</span>
           <button className="btn" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)}>Next</button>
         </div>
       </div>

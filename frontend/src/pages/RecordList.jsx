@@ -4,6 +4,7 @@ import { getRecords, downloadExport, bulkUpdate } from '../api.js';
 import { Cell } from '../format.jsx';
 import { Loading } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import { fieldLabel } from '../labels.js';
 
 const SAVED_KEY = 'llcc_saved_searches';
 const loadSaved = () => { try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || {}; } catch { return {}; } };
@@ -62,7 +63,7 @@ export default function RecordList() {
 
   async function applyBulk() {
     if (!bulkCol || !selected.size) return;
-    if (!confirm(`Set ${bulkCol} = "${bulkVal}" on ${selected.size} record(s)?`)) return;
+    if (!confirm(`Set ${fieldLabel(bulkCol)} to "${bulkVal}" on ${selected.size} record(s)?`)) return;
     try {
       const r = await bulkUpdate(table, [...selected], { [bulkCol]: bulkVal });
       toast.success(`Updated ${r.updated} record${r.updated > 1 ? 's' : ''}`);
@@ -78,7 +79,10 @@ export default function RecordList() {
       <div className="page-head-row">
         <div>
           <h1 className="page-title">{data?.label || table}</h1>
-          <p className="page-sub">{data ? `${data.total.toLocaleString()} record${data.total === 1 ? '' : 's'}` : ' '}</p>
+          <p className="page-sub">
+            {data?.description && <>{data.description} · </>}
+            {data ? `${data.total.toLocaleString()} record${data.total === 1 ? '' : 's'}` : ' '}
+          </p>
         </div>
         <Link className="btn primary" to={`/records/${table}/new`}>+ New</Link>
       </div>
@@ -107,7 +111,7 @@ export default function RecordList() {
           <span>set</span>
           <select className="search" style={{ flex: '0 0 160px' }} value={bulkCol} onChange={(e) => setBulkCol(e.target.value)}>
             <option value="">column…</option>
-            {data.columns.filter((c) => c !== data.primaryKey).map((c) => <option key={c} value={c}>{c}</option>)}
+            {data.columns.filter((c) => c !== data.primaryKey).map((c) => <option key={c} value={c}>{fieldLabel(c)}</option>)}
           </select>
           <input className="search" style={{ flex: '0 0 160px' }} placeholder="value" value={bulkVal} onChange={(e) => setBulkVal(e.target.value)} />
           <button className="btn primary" onClick={applyBulk} disabled={!bulkCol}>Apply</button>
@@ -126,7 +130,7 @@ export default function RecordList() {
                   <th style={{ cursor: 'default', width: 36 }}></th>
                   {cols.map((c) => (
                     <th key={c} onClick={() => toggleSort(c)}>
-                      {c}{sort === c ? (dir === 'asc' ? ' ↑' : ' ↓') : ''}
+                      {fieldLabel(c, data.primaryKey)}{sort === c ? (dir === 'asc' ? ' ↑' : ' ↓') : ''}
                     </th>
                   ))}
                 </tr>

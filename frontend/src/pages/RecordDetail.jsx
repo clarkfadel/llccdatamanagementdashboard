@@ -5,6 +5,7 @@ import { Cell } from '../format.jsx';
 import LinkPicker from '../components/LinkPicker.jsx';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import { fieldLabel, relationLabel } from '../labels.js';
 
 const AUTO = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At']);
 const META = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At', 'UserId']);
@@ -42,7 +43,7 @@ export default function RecordDetail() {
     try {
       await linkRecord(table, id, column, targetId);
       setLinking(null);
-      toast.success(`Linked ${column}${label ? ` → ${label}` : ''}`);
+      toast.success(`${relationLabel(column)} linked${label ? `: ${label}` : ''}`);
       load();
     } catch (e) { toast.error(e.message); }
   }
@@ -82,6 +83,7 @@ export default function RecordDetail() {
         <div>
           <div className="crumbs">{data.label}</div>
           <h1 className="page-title">{data.title}</h1>
+          {data.description && <p className="page-sub" style={{ marginBottom: 0 }}>{data.description}</p>}
         </div>
         <div className="no-print detail-actions">
           {editing ? (
@@ -101,7 +103,7 @@ export default function RecordDetail() {
       <div className="panel" style={{ marginTop: 8 }}>
         <div className="detail-grid">
           {mainCols.map((col) => (
-            <Field key={col} label={col}>{renderValue(col, true)}</Field>
+            <Field key={col} label={fieldLabel(col, data.primaryKey)}>{renderValue(col, true)}</Field>
           ))}
         </div>
       </div>
@@ -111,7 +113,7 @@ export default function RecordDetail() {
           <div className="meta-title">Record info</div>
           <div className="detail-grid">
             {metaCols.map((col) => (
-              <Field key={col} label={col} muted>{renderValue(col, false)}</Field>
+              <Field key={col} label={fieldLabel(col, data.primaryKey)} muted>{renderValue(col, false)}</Field>
             ))}
           </div>
         </div>
@@ -128,7 +130,7 @@ export default function RecordDetail() {
               </div>
               <table>
                 <thead>
-                  <tr>{grp.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{c}</th>)}</tr>
+                  <tr>{grp.listColumns.map((c) => <th key={c} style={{ cursor: 'default' }}>{fieldLabel(c, grp.primaryKey)}</th>)}</tr>
                 </thead>
                 <tbody>
                   {grp.rows.map((row) => (
@@ -159,7 +161,7 @@ function FkValue({ fk, value, linking, onStartLink, onCancelLink, onPick }) {
   if (fk.unmapped || value == null) {
     return (
       <span>
-        <span className="unmapped">Unmapped</span>
+        <span className="unmapped">Not linked</span>
         <button className="btn small no-print" style={{ marginLeft: 8 }} onClick={onStartLink}>Link…</button>
       </span>
     );

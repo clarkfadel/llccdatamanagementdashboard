@@ -48,7 +48,7 @@ export default function DataQuality() {
 
               {links.length > 0 && (
                 <div className="dq-section">
-                  <div className="dq-section-title">Unmapped links</div>
+                  <div className="dq-section-title">Missing links</div>
                   {links.map((p) => (
                     <div key={p.column} className="dq-link-row">
                       <span className="dq-link-icon"><Icon.link width={16} height={16} /></span>
@@ -79,7 +79,7 @@ export default function DataQuality() {
               )}
 
               {clean && (
-                <div className="dq-clean"><span className="dq-clean-icon">✓</span> No unmapped links or missing fields.</div>
+                <div className="dq-clean"><span className="dq-clean-icon">✓</span> Nothing missing.</div>
               )}
 
               <div className="dq-foot">

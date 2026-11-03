@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getRecords, createRecord } from '../api.js';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import { fieldLabel } from '../labels.js';
 
 // columns we don't ask the user to fill in by hand
 const AUTO = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At', 'UserId']);
@@ -37,14 +38,14 @@ export default function RecordNew() {
   return (
     <>
       <Link to={`/records/${table}`} className="back-link">← {meta.label}</Link>
-      <h1 className="page-title">New {meta.label.replace(/s$/, '')}</h1>
-      <p className="page-sub">The ID is assigned automatically. Leave fields blank if unknown.</p>
+      <h1 className="page-title">New record: {meta.label}</h1>
+      <p className="page-sub">The ID is given automatically. Leave fields blank if you don't know them, you can link records after saving.</p>
 
       <form className="panel form-panel" onSubmit={submit}>
         <div className="form-grid">
           {fields.map((c) => (
             <label key={c} className="field">
-              <span>{c}</span>
+              <span>{fieldLabel(c)}</span>
               <input
                 value={values[c] || ''}
                 onChange={(e) => setValues((v) => ({ ...v, [c]: e.target.value }))}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { getAudit, undoChange } from '../api.js';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import { actionLabel, tableLabel } from '../labels.js';
 
 const UNDOABLE = new Set(['update', 'create', 'delete', 'link', 'bulk']);
 
@@ -44,11 +45,11 @@ export default function AuditLog() {
               <tr key={c.id}>
                 <td>{new Date(c.performed_at).toLocaleString()}</td>
                 <td>{c.performed_by}</td>
-                <td><span className={`badge ${c.undone ? 'off' : 'on'}`}>{c.action}</span></td>
+                <td><span className={`badge ${c.undone ? 'off' : 'on'}`}>{actionLabel(c.action)}</span></td>
                 <td>
                   {c.row_pk
-                    ? <Link className="chip-link" to={`/records/${c.table_name}/${c.row_pk}`}>{c.table_name} #{c.row_pk}</Link>
-                    : <span className="muted">{c.table_name} (bulk)</span>}
+                    ? <Link className="chip-link" to={`/records/${c.table_name}/${c.row_pk}`}>{tableLabel(c.table_name)} #{c.row_pk}</Link>
+                    : <span className="muted">{tableLabel(c.table_name)} (several records)</span>}
                 </td>
                 <td>
                   {c.undone

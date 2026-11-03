@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import { getDashboard, getQuality, getAudit, getDuplicates, getUser } from '../api.js';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { Icon } from '../components/icons.jsx';
+import { actionLabel, tableLabel } from '../labels.js';
 
 const ICONS = { Clients: Icon.clients, Lots: Icon.lots, Deceased: Icon.deceased, Transactions: Icon.transactions };
-const ACTION_LABEL = { update: 'Updated', create: 'Created', link: 'Linked', bulk: 'Bulk updated', merge: 'Merged', delete: 'Deleted' };
 
 function greeting() {
   const h = new Date().getHours();
@@ -48,7 +48,7 @@ export default function Dashboard() {
   const user = getUser();
 
   const attention = [
-    { icon: Icon.link, title: 'Records need a linked owner', sub: 'Match unmapped records to a Client or Lot',
+    { icon: Icon.link, title: 'Records need a linked owner', sub: 'Match records to their Client or Lot',
       count: totalUnmapped, to: '/quality', show: true },
     { icon: Icon.clients, title: 'Clients missing contact info', sub: 'No phone number on file',
       count: missingContact, to: '/records/Clients', show: missingContact > 0 },
@@ -136,9 +136,9 @@ export default function Dashboard() {
                 <span className={`activity-dot ${a.undone ? 'undone' : a.action}`} />
                 <div className="activity-body">
                   <div className="activity-text">
-                    <span className="activity-verb">{ACTION_LABEL[a.action] || a.action}</span>{' '}
+                    <span className="activity-verb">{actionLabel(a.action)}</span>{' '}
                     {a.row_pk
-                      ? <Link className="chip-link" to={`/records/${a.table_name}/${a.row_pk}`}>{a.table_name} #{a.row_pk}</Link>
+                      ? <Link className="chip-link" to={`/records/${a.table_name}/${a.row_pk}`}>{tableLabel(a.table_name)} #{a.row_pk}</Link>
                       : <span className="activity-target">{a.label || a.table_name}</span>}
                     {a.undone && <span className="activity-undone-tag">undone</span>}
                   </div>
@@ -152,7 +152,7 @@ export default function Dashboard() {
 
       {/* Quick actions */}
       <section className="quick-actions">
-        <QuickAction to="/quality" icon={Icon.link} title="Resolve unmapped" desc="Link records to their owners" />
+        <QuickAction to="/quality" icon={Icon.link} title="Link records" desc="Match records to their owners" />
         <QuickAction to="/duplicates/Clients" icon={Icon.copy} title="Find duplicates" desc="Merge repeated records" />
         <QuickAction to="/audit" icon={Icon.history} title="Recent changes" desc="History & undo" />
       </section>

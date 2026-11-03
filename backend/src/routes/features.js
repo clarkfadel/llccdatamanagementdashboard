@@ -70,7 +70,8 @@ features.get('/quality', async (_req, res, next) => {
       const pk = pkOf(table);
       const fks = actionableFks(await fkColumns(table));
 
-      const total = (await query(`select count(*)::int n from ${qualified(table.name)}`)).rows[0].n;
+      const total = (await query(
+        `select count(*)::int n from ${qualified(table.name)} where ${ident(pk)} is distinct from '-1'`)).rows[0].n;
 
       // rows with -1
       let unmappedRows = 0;
@@ -93,7 +94,7 @@ features.get('/quality', async (_req, res, next) => {
       for (const c of ['Email', 'ContactNo', 'Address', 'BirthDate']) {
         if (colExists(table, c)) {
           const n = (await query(
-            `select count(*)::int n from ${qualified(table.name)} where ${ident(c)} is null`
+            `select count(*)::int n from ${qualified(table.name)} where ${ident(c)} is null and ${ident(pk)} is distinct from '-1'`
           )).rows[0].n;
           missing.push({ column: c, missing: n });
         }

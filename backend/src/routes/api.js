@@ -8,13 +8,17 @@ export const api = Router();
 
 const UNMAPPED = '-1';
 
+// hides the -1 placeholder row, it's not a real record
+const notPlaceholder = (pk) => `${ident(pk)} is distinct from '-1'`;
+
 api.get('/dashboard', async (_req, res, next) => {
   try {
     const cards = [];
     for (const card of DASHBOARD_CARDS) {
       const t = await getTable(card.table);
       if (!t) continue;
-      const { rows } = await query(`select count(*)::bigint as n from ${qualified(card.table)}`);
+      const { rows } = await query(
+        `select count(*)::bigint as n from ${qualified(card.table)} where ${notPlaceholder(pkOf(t))}`);
       cards.push({ table: card.table, label: card.label, count: rows[0].n });
     }
     res.json({ cards });
@@ -46,18 +50,18 @@ api.get('/records/:table', async (req, res, next) => {
     const pageSize = Math.min(100, Math.max(1, parseInt(req.query.pageSize, 10) || 25));
     const offset = (page - 1) * pageSize;
 
+    const pk = pkOf(table);
     const search = (req.query.search || '').trim();
     const params = [];
-    let where = '';
+    let where = `where ${notPlaceholder(pk)}`;
     if (search) {
       const cols = (cfg.search || table.textColumns).filter((c) => colExists(table, c));
       if (cols.length) {
         params.push(`%${search}%`);
-        where = 'where ' + cols.map((c) => `${ident(c)} ilike $1`).join(' or ');
+        where += ' and (' + cols.map((c) => `${ident(c)} ilike $1`).join(' or ') + ')';
       }
     }
 
-    const pk = pkOf(table);
     const dir = String(req.query.dir).toLowerCase() === 'desc' ? 'desc' : 'asc';
     // derived columns sort by their own SQL expression (never user input)
     const orderBy = isDerived(cfg, req.query.sort)
@@ -76,6 +80,7 @@ api.get('/records/:table', async (req, res, next) => {
     res.json({
       table: table.name,
       label: cfg.label || table.name,
+      description: cfg.description || null,
       primaryKey: pk,
       columns: table.columns.map((c) => c.name),
       listColumns: (cfg.listColumns || table.columns.slice(0, 6).map((c) => c.name))
@@ -159,6 +164,7 @@ api.get('/records/:table/:id', async (req, res, next) => {
       label: cfg.label || table.name,
       primaryKey: pk,
       columns: table.columns.map((c) => c.name),
+      description: cfg.description || null,
       title: cfg.title ? cfg.title(record) : record[pk],
       record,
       outgoing,
