@@ -71,7 +71,6 @@ For local testing just use the `PG*` variables in `.env`.
   Yes/No dropdowns and search-and-pick for linked records (Client, Lot, ...), and required fields are marked with *
 - **Filters** - each list has a few filters (date range, Yes/No, linked or not, dropdowns). They are set in
   `backend/src/entities.js` and the CSV export uses them too
-- **Reminders** - the dashboard shows rentals that expire in the next 30 days
 - **Fix `-1` links** - worklist where you pick the right Client/Lot for unmapped records
 - **Data quality** - counts of unmapped fields, missing contact info and duplicates
 - **Merge duplicates** - moves the references to the correct record then deletes the duplicate

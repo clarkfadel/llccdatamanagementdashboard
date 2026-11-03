@@ -1363,6 +1363,9 @@ select.cell-input {
   min-height: 36px;
   flex-wrap: wrap;
 }
+.link-field .link-choice {
+  width: auto;
+}
 .req {
   color: #b3261e;
 }

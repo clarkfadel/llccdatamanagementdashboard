@@ -9,7 +9,6 @@ import {
   BarChart3,
   History,
   ArrowRight,
-  CalendarClock,
 } from 'lucide-react';
 
 // default size 20
@@ -25,5 +24,4 @@ export const Icon = {
   chart: (p) => <BarChart3 {...base} {...p} />,
   history: (p) => <History {...base} {...p} />,
   arrow: (p) => <ArrowRight {...base} {...p} />,
-  calendar: (p) => <CalendarClock {...base} {...p} />,
 };

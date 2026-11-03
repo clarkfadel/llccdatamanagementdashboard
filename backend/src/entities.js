@@ -106,7 +106,7 @@ export const ENTITIES = {
   },
   Schedule: {
     label: 'Burial schedules',
-    description: 'Booked burials and exhumations, with the date, the lot, and the construction and maintenance fees.',
+    description: 'Booked burials and exhumations, with the date and the lot.',
     primaryKey: 'ScheduleId',
     required: ['ScheduleDate'],
     filters: [

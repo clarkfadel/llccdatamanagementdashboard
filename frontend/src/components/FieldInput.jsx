@@ -6,8 +6,10 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 // the right input for the kind of field (link, date, yes/no, number, text).
 // onChange gets the new value, and for links also the label of the picked record
 export default function FieldInput({ field, value, onChange, linkLabel }) {
-  const [picking, setPicking] = useState(false);
   const v = value ?? '';
+  const linked = v !== '' && v !== '-1';
+  const [picking, setPicking] = useState(false);
+  const [wantLink, setWantLink] = useState(linked);
 
   if (field.kind === 'link') {
     if (picking) {
@@ -16,12 +18,22 @@ export default function FieldInput({ field, value, onChange, linkLabel }) {
           onPick={(id, label) => { setPicking(false); onChange(id, label); }} />
       );
     }
-    const linked = v !== '' && v !== '-1';
+    // staff choose first if they want to link it, the search only shows after "Link to a record"
     return (
       <div className="link-field">
-        {linked ? <span>{linkLabel || `#${v}`}</span> : <span className="muted">Not linked</span>}
-        <button type="button" className="btn small" onClick={() => setPicking(true)}>{linked ? 'Change…' : 'Choose…'}</button>
-        {linked && <button type="button" className="btn small" onClick={() => onChange('', null)}>Remove</button>}
+        <select className="cell-input link-choice" value={wantLink ? 'yes' : 'no'}
+          onChange={(e) => {
+            const yes = e.target.value === 'yes';
+            setWantLink(yes);
+            if (yes) setPicking(true); else onChange('', null);
+          }}>
+          <option value="no">No link</option>
+          <option value="yes">Link to a record</option>
+        </select>
+        {wantLink && linked && <span>{linkLabel || `#${v}`}</span>}
+        {wantLink && (
+          <button type="button" className="btn small" onClick={() => setPicking(true)}>{linked ? 'Change…' : 'Choose…'}</button>
+        )}
       </div>
     );
   }
