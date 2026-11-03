@@ -41,8 +41,9 @@ export async function login(username, password) {
 export const getDashboard = () => req('/dashboard');
 export const getEntities = () => req('/entities');
 export const getRecord = (t, id) => req(`/records/${encodeURIComponent(t)}/${encodeURIComponent(id)}`);
-export function getRecords(table, { page = 1, pageSize = 25, search = '', sort, dir } = {}) {
-  const q = new URLSearchParams({ page, pageSize });
+// filters look like { f_Active: 'True', f_DeathDate_from: '2020-01-01' }
+export function getRecords(table, { page = 1, pageSize = 25, search = '', sort, dir, filters = {} } = {}) {
+  const q = new URLSearchParams({ page, pageSize, ...filters });
   if (search) q.set('search', search);
   if (sort) q.set('sort', sort);
   if (dir) q.set('dir', dir);
@@ -59,8 +60,11 @@ export const getUnmapped = (table, { column, page = 1 } = {}) => {
   return req(`/quality/unmapped/${encodeURIComponent(table)}?${q}`);
 };
 export const getDuplicates = (table) => req(`/duplicates/${encodeURIComponent(table)}`);
-export const exportUrl = (table, search = '') =>
-  `/api/records/${encodeURIComponent(table)}/export${search ? `?search=${encodeURIComponent(search)}` : ''}`;
+export function exportUrl(table, search = '', filters = {}) {
+  const q = new URLSearchParams(filters);
+  if (search) q.set('search', search);
+  return `/api/records/${encodeURIComponent(table)}/export${String(q) ? `?${q}` : ''}`;
+}
 
 // writes
 export const updateRecord = (t, id, changes) =>
@@ -79,8 +83,8 @@ export const getAudit = (limit = 50) => req(`/audit?limit=${limit}`);
 export const undoChange = (id) => req(`/audit/${id}/undo`, { method: 'POST' });
 
 // export download needs the auth header, so fetch as a blob
-export async function downloadExport(table, searchTerm = '') {
-  const res = await fetch(exportUrl(table, searchTerm), {
+export async function downloadExport(table, searchTerm = '', filters = {}) {
+  const res = await fetch(exportUrl(table, searchTerm, filters), {
     headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
   });
   if (!res.ok) throw new Error('Export failed');

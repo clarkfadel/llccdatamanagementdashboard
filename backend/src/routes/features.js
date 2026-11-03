@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { ident, qualified, naturalOrder } from '../schema.js';
 import { getTable, colExists, pkOf, fkColumns, getSchema } from '../meta.js';
 import { entityConfig, DASHBOARD_CARDS, isDerived, withDerived } from '../entities.js';
+import { buildWhere } from '../fields.js';
 
 export const features = Router();
 
@@ -173,16 +174,8 @@ features.get('/records/:table/export', async (req, res, next) => {
     const table = await getTable(req.params.table);
     const cfg = entityConfig(table?.name) || {};
     if (!table) return res.status(404).json({ error: 'Unknown table' });
-    const search = (req.query.search || '').trim();
-    const params = [];
-    let where = '';
-    if (search) {
-      const cols = (cfg.search || table.textColumns).filter((c) => colExists(table, c));
-      if (cols.length) {
-        params.push(`%${search}%`);
-        where = 'where ' + cols.map((c) => `${ident(c)} ilike $1`).join(' or ');
-      }
-    }
+    // same search and filters as the list, so the csv matches what's on screen
+    const { where, params } = buildWhere(table, cfg, req.query);
     const { rows } = await query(`select * from ${qualified(table.name)} ${where}`, params);
     const cols = table.columns.map((c) => c.name);
     const esc = (v) => (v == null ? '' : `"${String(v).replace(/"/g, '""')}"`);

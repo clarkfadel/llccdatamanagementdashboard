@@ -1317,3 +1317,52 @@ input:focus-visible,
     border: 1px solid #ccc;
   }
 }
+
+/* filters */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.filter {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 140px;
+}
+.filter > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.filter-range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.filter-range .cell-input {
+  width: 150px;
+}
+.filter-clear {
+  margin-bottom: 4px;
+}
+
+/* form fields */
+select.cell-input {
+  cursor: pointer;
+}
+.link-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  flex-wrap: wrap;
+}
+.req {
+  color: #b3261e;
+}

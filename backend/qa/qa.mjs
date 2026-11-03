@@ -237,6 +237,70 @@ async function run() {
     return 'merge undo rejected (400)';
   });
 
+  // filters
+  await check('Filters', 'date range only returns rows inside it', async () => {
+    const r = await api('GET', '/records/Deceased?pageSize=100&f_DeathDate_from=2000-01-01&f_DeathDate_to=2009-12-31');
+    assert(r.json.total > 0, 'no rows in range');
+    assert(r.json.rows.every((x) => x.DeathDate >= '2000-01-01' && x.DeathDate <= '2009-12-31'), 'row outside range');
+    return `${r.json.total} deceased died 2000-2009`;
+  });
+  await check('Filters', 'linked filter splits linked and not linked', async () => {
+    const all = (await api('GET', '/records/Deceased?pageSize=1')).json.total;
+    const yes = await api('GET', '/records/Deceased?pageSize=100&f_LotId=yes');
+    const no = await api('GET', '/records/Deceased?pageSize=100&f_LotId=no');
+    assert(yes.json.rows.every((x) => x.LotId !== '-1'), 'linked filter has -1');
+    assert(no.json.rows.every((x) => x.LotId === '-1' || x.LotId === null), 'not linked filter has links');
+    assert(yes.json.total + no.json.total === all, 'counts do not add up');
+    return `${yes.json.total} linked + ${no.json.total} not linked = ${all}`;
+  });
+  await check('Filters', 'yes/no and dropdown filters', async () => {
+    const r = await api('GET', '/records/Rent?pageSize=100&f_Active=True');
+    assert(r.json.rows.every((x) => x.Active === 'True'), 'inactive row in result');
+    const genders = (await api('GET', '/records/Clients?pageSize=1')).json.filters.find((f) => f.column === 'Gender').options;
+    assert(genders.includes('Male') && genders.includes('Female'), `options ${genders}`);
+    return `${r.json.total} active rentals, gender options ${genders.join('/')}`;
+  });
+  await check('Filters', 'csv export uses the same filters', async () => {
+    const res = await api('GET', '/records/Rent/export?f_Active=True', { raw: true });
+    const lines = (await res.text()).trim().split('\n').length - 1;
+    const total = (await api('GET', '/records/Rent?pageSize=1&f_Active=True')).json.total;
+    assert(lines === total, `csv ${lines} rows, list ${total}`);
+    return `${lines} rows in both`;
+  });
+
+  // forms
+  await check('Forms', 'fields tell the form what input to use', async () => {
+    const f = (await api('GET', '/records/Deceased?pageSize=1')).json.fields;
+    const kind = (n) => f.find((x) => x.name === n)?.kind;
+    assert(f[0].name === 'Name' && f[0].required, 'Name should be first and required');
+    assert(kind('DeathDate') === 'date' && kind('LotId') === 'link' && kind('TimeStamp') === 'auto', 'wrong kinds');
+    return 'Name text*, DeathDate date, LotId link, TimeStamp auto';
+  });
+  await check('Forms', 'missing required fields 400', async () => {
+    const r = await api('POST', '/records/Deceased', { body: { data: { CauseOfDeath: 'Old age' } } });
+    assert(r.status === 400 && /Name/.test(r.json.error), `got ${r.status} ${r.json?.error}`);
+    return r.json.error;
+  });
+  await check('Forms', 'new deceased name is saved in Remarks + undo', async () => {
+    const r = await api('POST', '/records/Deceased', { body: { data: {
+      Name: 'qa test person', DeathDate: '2026-01-02', PermitNo: 'MLA-0000', LotId: '-1' } } });
+    assert(r.status === 201, `create ${r.status}`);
+    const got = (await api('GET', `/records/Deceased/${r.json.id}`)).json;
+    assert(got.record.Remarks === 'Name=QA TEST PERSON' && got.record.Name === 'QA TEST PERSON', got.record.Remarks);
+    await api('POST', `/audit/${await latestAuditId()}/undo`);
+    return `created #${r.json.id} as ${got.title}, undone`;
+  });
+  await check('Forms', 'editing Name keeps the rest of Remarks + undo', async () => {
+    const before = (await api('GET', '/records/Deceased/1')).json.record.Remarks;
+    await api('PATCH', '/records/Deceased/1', { body: { changes: { Name: 'renamed person' } } });
+    const after = (await api('GET', '/records/Deceased/1')).json.record.Remarks;
+    assert(after === before.replace(/Name=[^|]+/, 'Name=RENAMED PERSON '), `got ${after}`);
+    await api('POST', `/audit/${await latestAuditId()}/undo`);
+    const restored = (await api('GET', '/records/Deceased/1')).json.record.Remarks;
+    assert(restored === before, 'undo did not restore Remarks');
+    return 'name changed, other parts kept, undone';
+  });
+
   // output
   const pass = results.filter((r) => r.ok).length;
   const fail = results.length - pass;

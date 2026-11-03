@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { getSchema, getTable, ident, qualified, naturalOrder } from '../schema.js';
 import { DASHBOARD_CARDS, NAV_GROUPS, entityConfig, isDerived, withDerived } from '../entities.js';
 import { colExists, pkOf, tableByPkColumn } from '../meta.js';
+import { fieldList, buildWhere, filterOptions } from '../fields.js';
 
 export const api = Router();
 
@@ -51,16 +52,7 @@ api.get('/records/:table', async (req, res, next) => {
     const offset = (page - 1) * pageSize;
 
     const pk = pkOf(table);
-    const search = (req.query.search || '').trim();
-    const params = [];
-    let where = `where ${notPlaceholder(pk)}`;
-    if (search) {
-      const cols = (cfg.search || table.textColumns).filter((c) => colExists(table, c));
-      if (cols.length) {
-        params.push(`%${search}%`);
-        where += ' and (' + cols.map((c) => `${ident(c)} ilike $1`).join(' or ') + ')';
-      }
-    }
+    const { where, params } = buildWhere(table, cfg, req.query);
 
     const dir = String(req.query.dir).toLowerCase() === 'desc' ? 'desc' : 'asc';
     // derived columns sort by their own SQL expression (never user input)
@@ -88,6 +80,8 @@ api.get('/records/:table', async (req, res, next) => {
       page, pageSize, total,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
       rows: rowsRes.rows.map((r) => withDerived(cfg, r)),
+      fields: await fieldList(table, cfg),
+      filters: await filterOptions(table, cfg),
     });
   } catch (e) { next(e); }
 });
@@ -166,7 +160,8 @@ api.get('/records/:table/:id', async (req, res, next) => {
       columns: table.columns.map((c) => c.name),
       description: cfg.description || null,
       title: cfg.title ? cfg.title(record) : record[pk],
-      record,
+      record: withDerived(cfg, record),
+      fields: await fieldList(table, cfg),
       outgoing,
       incoming,
     });

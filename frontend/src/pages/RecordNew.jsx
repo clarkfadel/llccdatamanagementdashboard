@@ -3,55 +3,69 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getRecords, createRecord } from '../api.js';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
+import FieldInput from '../components/FieldInput.jsx';
 import { fieldLabel } from '../labels.js';
-
-// columns we don't ask the user to fill in by hand
-const AUTO = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At', 'UserId']);
 
 export default function RecordNew() {
   const { table } = useParams();
   const navigate = useNavigate();
   const [meta, setMeta] = useState(null);
   const [values, setValues] = useState({});
+  const [linkLabels, setLinkLabels] = useState({});
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
+    setValues({}); setLinkLabels({}); setError(null); setMeta(null);
     getRecords(table, { pageSize: 1 }).then(setMeta).catch((e) => setError(e.message));
   }, [table]);
+
+  // system fields (timestamps, encoded by) are filled in automatically
+  const fields = (meta?.fields || []).filter((f) => f.kind !== 'auto');
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true); setError(null);
     try {
-      const { id } = await createRecord(table, values);
+      // empty links are saved as -1 like the rest of the db, so they show up in "Link records"
+      const data = { ...values };
+      for (const f of fields) if (f.kind === 'link' && !data[f.name]) data[f.name] = '-1';
+      const { id } = await createRecord(table, data);
       toast.success('Record created');
       navigate(`/records/${table}/${id}`);
     } catch (err) { setError(err.message); setBusy(false); }
   }
 
+  function setField(name, value, label) {
+    setValues((v) => ({ ...v, [name]: value }));
+    if (label !== undefined) setLinkLabels((l) => ({ ...l, [name]: label }));
+  }
+
   if (error && !meta) return <ErrorState message={error} />;
   if (!meta) return <Loading />;
-
-  const fields = meta.columns.filter((c) => c !== meta.primaryKey && !AUTO.has(c));
 
   return (
     <>
       <Link to={`/records/${table}`} className="back-link">← {meta.label}</Link>
       <h1 className="page-title">New record: {meta.label}</h1>
-      <p className="page-sub">The ID is given automatically. Leave fields blank if you don't know them, you can link records after saving.</p>
+      <p className="page-sub">
+        The ID is given automatically. Fields with <span className="req">*</span> are required,
+        the rest can be left blank and filled in later.
+      </p>
 
       <form className="panel form-panel" onSubmit={submit}>
         <div className="form-grid">
-          {fields.map((c) => (
-            <label key={c} className="field">
-              <span>{fieldLabel(c)}</span>
-              <input
-                value={values[c] || ''}
-                onChange={(e) => setValues((v) => ({ ...v, [c]: e.target.value }))}
-              />
-            </label>
-          ))}
+          {fields.map((f) => {
+            // a div for links, so clicking the label doesn't press the Choose button
+            const Wrap = f.kind === 'link' ? 'div' : 'label';
+            return (
+              <Wrap key={f.name} className="field">
+                <span>{fieldLabel(f.name)}{f.required && <span className="req"> *</span>}</span>
+                <FieldInput field={f} value={values[f.name]} linkLabel={linkLabels[f.name]}
+                  onChange={(value, label) => setField(f.name, value, label)} />
+              </Wrap>
+            );
+          })}
         </div>
         {error && <div className="form-error">{error}</div>}
         <div className="form-actions">

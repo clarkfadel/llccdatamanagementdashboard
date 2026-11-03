@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { getRecords, downloadExport, bulkUpdate } from '../api.js';
 import { Cell } from '../format.jsx';
 import { Loading } from '../components/ui.jsx';
@@ -23,15 +23,28 @@ export default function RecordList() {
   const [saved, setSaved] = useState(loadSaved());
   const [bulkCol, setBulkCol] = useState('');
   const [bulkVal, setBulkVal] = useState('');
+  // filters live in the url (?f_Active=True) so the dashboard can link to a filtered list
+  const [params, setParams] = useSearchParams();
+  const filterKey = params.toString();
 
   useEffect(() => {
     setSearch(''); setPage(1); setSort(null); setDir('asc'); setSelected(new Set());
   }, [table]);
 
+  const filters = Object.fromEntries([...new URLSearchParams(filterKey)].filter(([k]) => k.startsWith('f_')));
+
   const load = useCallback(() => {
     setError(null);
-    getRecords(table, { page, search, sort, dir }).then(setData).catch((e) => setError(e.message));
-  }, [table, page, search, sort, dir]);
+    getRecords(table, { page, search, sort, dir, filters }).then(setData).catch((e) => setError(e.message));
+  }, [table, page, search, sort, dir, filterKey]);
+
+  function setFilter(key, value) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value); else next.delete(key);
+    setParams(next, { replace: true });
+    setPage(1);
+  }
+  function clearFilters() { setParams({}, { replace: true }); setPage(1); }
 
   useEffect(() => {
     const t = setTimeout(load, search ? 250 : 0);
@@ -91,8 +104,12 @@ export default function RecordList() {
         <input className="search" placeholder="Search…" value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         <button className="btn" onClick={saveCurrentSearch} disabled={!search}>Save search</button>
-        <button className="btn" onClick={() => downloadExport(table, search)}>Export CSV</button>
+        <button className="btn" onClick={() => downloadExport(table, search, filters)}>Export CSV</button>
       </div>
+
+      {data?.filters?.length > 0 && (
+        <FilterBar list={data.filters} values={filters} onChange={setFilter} onClear={clearFilters} />
+      )}
 
       {savedForTable.length > 0 && (
         <div className="saved-row">
@@ -161,5 +178,57 @@ export default function RecordList() {
         )}
       </div>
     </>
+  );
+}
+
+// filter controls above the table. the filters are set per table in backend entities.js
+function FilterBar({ list, values, onChange, onClear }) {
+  return (
+    <div className="filter-bar">
+      {list.map((f) => {
+        const key = `f_${f.column}`;
+        const label = f.label || fieldLabel(f.column);
+        if (f.type === 'range') {
+          return (
+            <div key={key} className="filter">
+              <span>{label}</span>
+              <div className="filter-range">
+                <input className="cell-input" type="date" value={values[`${key}_from`] || ''}
+                  onChange={(e) => onChange(`${key}_from`, e.target.value)} />
+                <span className="muted">to</span>
+                <input className="cell-input" type="date" value={values[`${key}_to`] || ''}
+                  onChange={(e) => onChange(`${key}_to`, e.target.value)} />
+              </div>
+            </div>
+          );
+        }
+        if (f.type === 'select') {
+          return (
+            <div key={key} className="filter">
+              <span>{label}</span>
+              <select className="cell-input" value={values[key] || ''} onChange={(e) => onChange(key, e.target.value)}>
+                <option value="">All</option>
+                {f.options.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          );
+        }
+        // yes/no columns are saved as True/False, the linked / has filters use yes/no
+        const [yes, no] = f.type === 'yesno' ? ['True', 'False'] : ['yes', 'no'];
+        return (
+          <div key={key} className="filter">
+            <span>{label}</span>
+            <select className="cell-input" value={values[key] || ''} onChange={(e) => onChange(key, e.target.value)}>
+              <option value="">All</option>
+              <option value={yes}>Yes</option>
+              <option value={no}>No</option>
+            </select>
+          </div>
+        );
+      })}
+      {Object.keys(values).length > 0 && (
+        <button className="btn small filter-clear" onClick={onClear}>Clear filters</button>
+      )}
+    </div>
   );
 }

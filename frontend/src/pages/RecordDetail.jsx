@@ -3,12 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { getRecord, updateRecord, linkRecord } from '../api.js';
 import { Cell } from '../format.jsx';
 import LinkPicker from '../components/LinkPicker.jsx';
+import FieldInput from '../components/FieldInput.jsx';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { toast } from '../components/Toast.jsx';
 import { fieldLabel, relationLabel } from '../labels.js';
 
-const AUTO = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At']);
-const META = new Set(['TimeStamp', 'Timestamp', 'Created_At', 'Updated_At', 'UserId']);
 
 export default function RecordDetail() {
   const { table, id } = useParams();
@@ -52,16 +51,20 @@ export default function RecordDetail() {
   if (!data) return <Loading />;
 
   const outgoingByCol = Object.fromEntries(data.outgoing.map((o) => [o.column, o]));
-  const mainCols = data.columns.filter((c) => !META.has(c));
-  const metaCols = data.columns.filter((c) => META.has(c));
+  // fields from the api say what kind of input each column needs. Name (deceased) is in here too
+  const fieldByName = Object.fromEntries(data.fields.map((f) => [f.name, f]));
+  const mainCols = [data.primaryKey, ...data.fields.filter((f) => f.kind !== 'auto').map((f) => f.name)];
+  const metaCols = data.fields.filter((f) => f.kind === 'auto').map((f) => f.name);
 
   function renderValue(col, allowEdit) {
     const fk = outgoingByCol[col];
     const value = data.record[col];
-    if (allowEdit && editing && col !== data.primaryKey && !AUTO.has(col)) {
+    const field = fieldByName[col];
+    // links are changed with the Link / Change button, they save right away
+    if (allowEdit && editing && field && field.kind !== 'link') {
       return (
-        <input className="cell-input" value={draft[col] ?? ''}
-          onChange={(e) => setDraft((d) => ({ ...d, [col]: e.target.value }))} />
+        <FieldInput field={field} value={draft[col]}
+          onChange={(v) => setDraft((d) => ({ ...d, [col]: v }))} />
       );
     }
     if (fk) {

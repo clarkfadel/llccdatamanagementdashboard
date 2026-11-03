@@ -3,6 +3,7 @@ import { query, withTx } from '../db.js';
 import { ident, qualified } from '../schema.js';
 import { getTable, colExists, pkOf, getSchema } from '../meta.js';
 import { logChange, recentChanges, undo } from '../audit.js';
+import { entityConfig, applyDerivedWrites } from '../entities.js';
 
 export const write = Router();
 
@@ -23,12 +24,13 @@ write.patch('/records/:table/:id', async (req, res, next) => {
     if (!table) return res.status(404).json({ error: 'Unknown table' });
     const pk = pkOf(table);
 
-    const changes = req.body?.changes || {};
-    const cols = Object.keys(changes).filter((c) => colExists(table, c) && c !== pk);
-    if (!cols.length) return res.status(400).json({ error: 'No editable fields provided' });
-
     const before = await fetchRow(table.name, pk, req.params.id);
     if (!before) return res.status(404).json({ error: 'Not found' });
+
+    // Name on deceased is saved inside Remarks
+    const changes = applyDerivedWrites(entityConfig(table.name), req.body?.changes || {}, before);
+    const cols = Object.keys(changes).filter((c) => colExists(table, c) && c !== pk);
+    if (!cols.length) return res.status(400).json({ error: 'No editable fields provided' });
 
     const sets = cols.map((c, i) => `${ident(c)} = $${i + 1}`);
     const params = cols.map((c) => (changes[c] === '' ? null : changes[c]));
@@ -73,7 +75,12 @@ write.post('/records/:table', async (req, res, next) => {
     const table = await getTable(req.params.table);
     if (!table) return res.status(404).json({ error: 'Unknown table' });
     const pk = pkOf(table);
-    const data = req.body?.data || {};
+    const cfg = entityConfig(table.name);
+    const raw = req.body?.data || {};
+    const missing = (cfg?.required || []).filter((c) => !String(raw[c] ?? '').trim());
+    if (missing.length) return res.status(400).json({ error: `Please fill in: ${missing.join(', ')}` });
+
+    const data = applyDerivedWrites(cfg, raw);
     const cols = Object.keys(data).filter((c) => colExists(table, c) && c !== pk);
 
     // no auto increment on these ids, so if two people add at the same time
