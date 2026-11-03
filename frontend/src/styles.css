@@ -441,7 +441,7 @@ tbody tr:last-child td {
   display: block;
   margin-bottom: 14px;
 }
-.field span {
+.field > span {
   display: block;
   font-size: 12px;
   color: var(--muted);
