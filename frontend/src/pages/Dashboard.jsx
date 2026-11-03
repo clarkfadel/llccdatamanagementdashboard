@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getDashboard, getQuality, getAudit, getDuplicates, getUser } from '../api.js';
+import { getDashboard, getQuality, getAudit, getDuplicates, getRecords, getUser } from '../api.js';
 import { Loading, ErrorState } from '../components/ui.jsx';
 import { Icon } from '../components/icons.jsx';
 import { actionLabel, tableLabel } from '../labels.js';
@@ -14,6 +14,14 @@ function greeting() {
 function today() {
   return new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 }
+// yyyy-mm-dd in local time (toISOString would use UTC)
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+// active rentals that end in the next 30 days
+const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+const EXPIRING = { f_ExpiryDate_from: isoDate(new Date()), f_ExpiryDate_to: isoDate(in30), f_Active: 'True' };
+
 function ago(iso) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return 'just now';
@@ -27,6 +35,7 @@ export default function Dashboard() {
   const [quality, setQuality] = useState([]);
   const [activity, setActivity] = useState([]);
   const [dupCount, setDupCount] = useState(null);
+  const [expiring, setExpiring] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -34,6 +43,7 @@ export default function Dashboard() {
     getQuality().then((d) => setQuality(d.cards)).catch(() => {});
     getAudit(6).then((d) => setActivity(d.changes)).catch(() => {});
     getDuplicates('Clients').then((d) => setDupCount(d.groups.reduce((s, g) => s + g.count, 0))).catch(() => {});
+    getRecords('Rent', { pageSize: 1, filters: EXPIRING }).then((d) => setExpiring(d.total)).catch(() => {});
   }, []);
 
   if (error) return <ErrorState message={error} />;
@@ -48,10 +58,12 @@ export default function Dashboard() {
   const user = getUser();
 
   const attention = [
+    { icon: Icon.calendar, title: 'Rentals expiring in 30 days', sub: 'Remind the renters to renew or move out',
+      count: expiring, to: `/records/Rent?${new URLSearchParams(EXPIRING)}`, show: expiring === null || expiring > 0 },
     { icon: Icon.link, title: 'Records need a linked owner', sub: 'Match records to their Client or Lot',
       count: totalUnmapped, to: '/quality', show: true },
     { icon: Icon.clients, title: 'Clients missing contact info', sub: 'No phone number on file',
-      count: missingContact, to: '/records/Clients', show: missingContact > 0 },
+      count: missingContact, to: '/records/Clients?f_ContactNo=no', show: missingContact > 0 },
     { icon: Icon.copy, title: 'Possible duplicate clients', sub: 'Same name on more than one record',
       count: dupCount, to: '/duplicates/Clients', show: dupCount === null || dupCount > 0 },
   ].filter((a) => a.show);

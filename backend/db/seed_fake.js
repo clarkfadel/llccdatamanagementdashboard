@@ -73,6 +73,7 @@ function addDays(date, days) {
   return d.toISOString().slice(0, 10);
 }
 const yearOf = (date) => Number(date.slice(0, 4));
+const TODAY = new Date().toISOString().slice(0, 10);
 function lotCode() { return `ESP. ${int(1965, 2010)}-${pick(ROMAN)}-${pick('ABCDEFGH')}`; }
 function permit() { return `MLA-${int(1000, 9999)}`; }
 function money(kind) { const [lo, hi] = FEES[kind]; return String(Math.round(int(lo, hi) / 50) * 50); }
@@ -164,11 +165,12 @@ function build() {
   add(rent, { RentId: '-1', LotId: '-1', ClientId: '-1', OldLOtRetNo: 'UNKNOWN', Active: 'False', TimeStamp: ts(), UserId: '-1' });
   const rentIds = [];
   for (let i = 1; i <= 80; i++) {
-    const occupied = dateBetween(1995, 2025);
+    // every 12th rental ends in the next 45 days, so the dashboard reminder has something to show
+    const occupied = i % 12 === 0 ? addDays(TODAY, int(3, 45) - 5 * 365) : dateBetween(1995, 2025);
     const expiry = addDays(occupied, 5 * 365);
     add(rent, { RentId: String(i), LotId: fk(lotIds, 0.35), ClientId: fk(clientIds, 0.3),
       OldLOtRetNo: `${pick(SECTIONS)}-${pick(ROMAN)}/${pad(int(1, 150), 3)}`, DateOccupied: occupied,
-      ExpiryDate: expiry, Active: expiry > '2026-11-01' ? 'True' : 'False', TimeStamp: ts(), UserId: '-1' });
+      ExpiryDate: expiry, Active: expiry > TODAY ? 'True' : 'False', TimeStamp: ts(), UserId: '-1' });
     rentIds.push(i);
   }
 
