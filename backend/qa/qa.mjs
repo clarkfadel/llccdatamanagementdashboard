@@ -80,8 +80,10 @@ async function run() {
   await check('Browse', 'list paginates (Lots, pageSize 5)', async () => {
     const r = await api('GET', '/records/Lots?pageSize=5&page=1');
     assert(r.json.rows.length === 5, `rows=${r.json.rows.length}`);
-    assert(r.json.total === 121, `total=${r.json.total}`);
-    assert(r.json.totalPages === Math.ceil(121 / 5), 'totalPages wrong');
+    // 120 lots, the -1 placeholder row is not shown
+    assert(r.json.total === 120, `total=${r.json.total}`);
+    assert(r.json.totalPages === Math.ceil(120 / 5), 'totalPages wrong');
+    assert(!r.json.rows.some((row) => row.LotId === '-1'), 'placeholder row is showing');
     return `total=${r.json.total}, pages=${r.json.totalPages}`;
   });
   await check('Browse', 'list search filters (Lots ?search=ESP)', async () => {
@@ -174,13 +176,15 @@ async function run() {
     assert(after === before, `undo failed: ${before} -> ${after}`);
     return `set then restored to "${before}"`;
   });
-  await check('Write', 'link FK + undo restores -1', async () => {
-    const link = await api('POST', '/records/Lots/1/link', { body: { column: 'ClientId', value: '3' } });
-    assert(link.json.record.ClientId === '3', 'link did not apply');
+  await check('Write', 'link FK + undo restores old value', async () => {
+    const before = (await api('GET', '/records/Lots/1')).json.record.ClientId;
+    const value = before === '3' ? '4' : '3';
+    const link = await api('POST', '/records/Lots/1/link', { body: { column: 'ClientId', value } });
+    assert(link.json.record.ClientId === value, 'link did not apply');
     await api('POST', `/audit/${await latestAuditId()}/undo`);
     const after = (await api('GET', '/records/Lots/1')).json.record.ClientId;
-    assert(after === '-1', `undo failed, ClientId=${after}`);
-    return 'linked to #3, undone back to -1';
+    assert(after === before, `undo failed, ClientId=${after}`);
+    return `linked to #${value}, undone back to ${before}`;
   });
   await check('Write', 'create record + undo deletes it', async () => {
     const created = await api('POST', '/records/Clients', { body: { data: { LastName: 'QA-TEMP', FirstName: 'TEST' } } });
